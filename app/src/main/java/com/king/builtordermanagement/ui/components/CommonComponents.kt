@@ -442,3 +442,65 @@ fun AnimatedCounter(
         )
     }
 }
+
+@Composable
+fun CategoryCard(
+    category: com.king.builtordermanagement.data.models.Category,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scale = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+    
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
+            .clickable {
+                scope.launch {
+                    scale.animateTo(0.92f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                    scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                }
+                onClick()
+            },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (category.imageUrl != null) {
+                AsyncImage(
+                    model = category.imageUrl,
+                    contentDescription = category.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(PrimaryColor.copy(alpha = 0.7f))
+                )
+            }
+            
+            Text(
+                text = category.name,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(16.dp)
+            )
+        }
+    }
+}

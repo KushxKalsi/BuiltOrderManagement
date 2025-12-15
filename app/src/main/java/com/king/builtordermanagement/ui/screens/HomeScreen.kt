@@ -29,6 +29,7 @@ import com.king.builtordermanagement.data.models.Product
 import com.king.builtordermanagement.ui.components.*
 import com.king.builtordermanagement.ui.theme.*
 import com.king.builtordermanagement.viewmodel.StoreUiState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +42,8 @@ fun HomeScreen(
     onCartClick: () -> Unit,
     onSearchClick: () -> Unit,
     onRefresh: () -> Unit,
-    onSeeAllClick: (String) -> Unit
+    onSeeAllClick: (String) -> Unit,
+    onSeeAllCategories: () -> Unit = {}
 ) {
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
     
@@ -94,12 +96,12 @@ fun HomeScreen(
         ) {
             // Banner Section
             item {
-                PromoBanner()
+                PromoBanner(onShopNowClick = { onSeeAllClick("featured") })
             }
             
             // Categories Section
             item {
-                SectionHeader(title = "Categories", onSeeAllClick = { onSeeAllClick("category") })
+                SectionHeader(title = "Categories", onSeeAllClick = onSeeAllCategories)
             }
             
             item {
@@ -176,7 +178,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun PromoBanner() {
+private fun PromoBanner(onShopNowClick: () -> Unit = {}) {
     val infiniteTransition = rememberInfiniteTransition(label = "banner")
     val animatedOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -188,11 +190,18 @@ private fun PromoBanner() {
         label = "offset"
     )
     
+    val scale = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-            .height(160.dp),
+            .height(160.dp)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            },
         shape = RoundedCornerShape(20.dp)
     ) {
         Box(
@@ -228,7 +237,13 @@ private fun PromoBanner() {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    onClick = {},
+                    onClick = {
+                        scope.launch {
+                            scale.animateTo(0.95f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                            scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                        }
+                        onShopNowClick()
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
                         contentColor = PrimaryColor
@@ -304,26 +319,30 @@ private fun FeaturedProductsRow(
     ) {
         itemsIndexed(products) { index, product ->
             val animatedAlpha = remember { Animatable(0f) }
-            val animatedOffset = remember { Animatable(50f) }
+            val animatedOffset = remember { Animatable(80f) }
+            val animatedScale = remember { Animatable(0.85f) }
             
             LaunchedEffect(product) {
                 animatedAlpha.animateTo(
                     targetValue = 1f,
                     animationSpec = tween(
-                        durationMillis = 300,
-                        delayMillis = index * 50,
+                        durationMillis = 600,
+                        delayMillis = index * 100,
                         easing = FastOutSlowInEasing
                     )
                 )
-            }
-            
-            LaunchedEffect(product) {
                 animatedOffset.animateTo(
                     targetValue = 0f,
-                    animationSpec = tween(
-                        durationMillis = 300,
-                        delayMillis = index * 50,
-                        easing = FastOutSlowInEasing
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
+                animatedScale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
                     )
                 )
             }
@@ -337,6 +356,8 @@ private fun FeaturedProductsRow(
                     .graphicsLayer {
                         alpha = animatedAlpha.value
                         translationX = animatedOffset.value
+                        scaleX = animatedScale.value
+                        scaleY = animatedScale.value
                     }
             )
         }

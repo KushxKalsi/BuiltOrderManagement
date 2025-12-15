@@ -31,6 +31,11 @@ fun ProfileScreen(
     isLoggedIn: Boolean,
     onLoginClick: () -> Unit,
     onOrdersClick: () -> Unit,
+    onAddressesClick: () -> Unit,
+    onWishlistClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
+    onHelpClick: () -> Unit,
+    onAboutClick: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -149,7 +154,7 @@ fun ProfileScreen(
                             icon = Icons.Outlined.LocationOn,
                             title = "Addresses",
                             subtitle = "Manage delivery addresses",
-                            onClick = { }
+                            onClick = onAddressesClick
                         )
                         
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -158,7 +163,7 @@ fun ProfileScreen(
                             icon = Icons.Outlined.Favorite,
                             title = "Wishlist",
                             subtitle = "Your favorite products",
-                            onClick = { }
+                            onClick = onWishlistClick
                         )
                     }
                     
@@ -166,7 +171,7 @@ fun ProfileScreen(
                         icon = Icons.Outlined.Notifications,
                         title = "Notifications",
                         subtitle = "Manage notifications",
-                        onClick = { }
+                        onClick = onNotificationsClick
                     )
                     
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -175,7 +180,7 @@ fun ProfileScreen(
                         icon = Icons.Outlined.Help,
                         title = "Help & Support",
                         subtitle = "Get help with your orders",
-                        onClick = { }
+                        onClick = onHelpClick
                     )
                     
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -184,7 +189,7 @@ fun ProfileScreen(
                         icon = Icons.Outlined.Info,
                         title = "About",
                         subtitle = "App version 1.0.0",
-                        onClick = { }
+                        onClick = onAboutClick
                     )
                 }
             }

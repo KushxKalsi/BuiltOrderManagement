@@ -28,6 +28,11 @@ sealed class Screen(val route: String) {
     object Checkout : Screen("checkout")
     object Orders : Screen("orders")
     object AllProducts : Screen("all_products/{type}")
+    object Addresses : Screen("addresses")
+    object Wishlist : Screen("wishlist")
+    object Notifications : Screen("notifications")
+    object Help : Screen("help")
+    object About : Screen("about")
 }
 
 data class BottomNavItem(
@@ -103,6 +108,9 @@ fun StoreNavHost(
                 onRefresh = { viewModel.loadInitialData() },
                 onSeeAllClick = { type ->
                     navController.navigate("all_products/$type")
+                },
+                onSeeAllCategories = {
+                    navController.navigate("all_categories")
                 }
             )
         }
@@ -146,6 +154,11 @@ fun StoreNavHost(
                 isLoggedIn = isLoggedIn,
                 onLoginClick = { navController.navigate(Screen.Auth.route) },
                 onOrdersClick = { navController.navigate(Screen.Orders.route) },
+                onAddressesClick = { navController.navigate(Screen.Addresses.route) },
+                onWishlistClick = { navController.navigate(Screen.Wishlist.route) },
+                onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
+                onHelpClick = { navController.navigate(Screen.Help.route) },
+                onAboutClick = { navController.navigate(Screen.About.route) },
                 onLogout = { viewModel.logout() }
             )
         }
@@ -241,6 +254,49 @@ fun StoreNavHost(
                     navController.navigate("product/${product.id}")
                 },
                 onAddToCart = { viewModel.addToCart(it) }
+            )
+        }
+        
+        composable("all_categories") {
+            AllCategoriesScreen(
+                categories = uiState.categories,
+                isLoading = uiState.isLoadingCategories,
+                onBackClick = { navController.popBackStack() },
+                onCategoryClick = { category ->
+                    viewModel.loadProductsByCategory(category.id)
+                    navController.navigate("all_products/category")
+                }
+            )
+        }
+        
+        composable(Screen.Addresses.route) {
+            AddressesScreen(
+                user = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.Wishlist.route) {
+            WishlistScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.Notifications.route) {
+            NotificationsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.Help.route) {
+            HelpScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.About.route) {
+            AboutScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
     }
