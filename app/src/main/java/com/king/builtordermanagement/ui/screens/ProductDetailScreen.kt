@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -33,43 +34,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProductDetailScreen(
     product: Product,
+    isInWishlist: Boolean = false,
     onBackClick: () -> Unit,
     onAddToCart: (Product) -> Unit,
+    onToggleWishlist: (Product) -> Boolean = { false },
     onBuyNow: (Product) -> Unit
 ) {
     var quantity by remember { mutableStateOf(1) }
-    var isFavorite by remember { mutableStateOf(false) }
+    var isFavorite by remember { mutableStateOf(isInWishlist) }
     
     val scrollState = rememberScrollState()
-    
-    // Entrance animations
-    val imageAlpha = remember { Animatable(0f) }
-    val imageScale = remember { Animatable(0.8f) }
-    val contentOffset = remember { Animatable(100f) }
-    val contentAlpha = remember { Animatable(0f) }
-    
-    LaunchedEffect(Unit) {
-        imageAlpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(500, easing = FastOutSlowInEasing)
-        )
-        imageScale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMediumLow
-            )
-        )
-        delay(200)
-        contentOffset.animateTo(
-            targetValue = 0f,
-            animationSpec = tween(400, easing = FastOutSlowInEasing)
-        )
-        contentAlpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(400, easing = FastOutSlowInEasing)
-        )
-    }
     
     Scaffold(
         topBar = {
@@ -85,12 +59,14 @@ fun ProductDetailScreen(
                                 CircleShape
                             )
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(
-                        onClick = { isFavorite = !isFavorite },
+                        onClick = { 
+                            isFavorite = onToggleWishlist(product)
+                        },
                         modifier = Modifier
                             .padding(8.dp)
                             .background(
@@ -129,11 +105,6 @@ fun ProductDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(350.dp)
-                    .graphicsLayer {
-                        alpha = imageAlpha.value
-                        scaleX = imageScale.value
-                        scaleY = imageScale.value
-                    }
             ) {
                 AsyncImage(
                     model = product.imageUrl,
@@ -165,11 +136,7 @@ fun ProductDetailScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-24).dp)
-                    .graphicsLayer {
-                        alpha = contentAlpha.value
-                        translationY = contentOffset.value
-                    },
+                    .offset(y = (-24).dp),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {

@@ -30,6 +30,10 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
     val cartItems: StateFlow<List<CartItem>> = _cartItems.asStateFlow()
     
+    // Wishlist
+    private val _wishlistItems = MutableStateFlow<List<Product>>(emptyList())
+    val wishlistItems: StateFlow<List<Product>> = _wishlistItems.asStateFlow()
+    
     val cartTotal: StateFlow<Double> = _cartItems.map { items ->
         items.sumOf { (it.product.discountPrice ?: it.product.price) * it.quantity }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
@@ -192,6 +196,31 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     
     fun clearCart() {
         _cartItems.value = emptyList()
+    }
+    
+    // Wishlist functions
+    fun addToWishlist(product: Product) {
+        if (!_wishlistItems.value.any { it.id == product.id }) {
+            _wishlistItems.value = _wishlistItems.value + product
+        }
+    }
+    
+    fun removeFromWishlist(productId: Int) {
+        _wishlistItems.value = _wishlistItems.value.filter { it.id != productId }
+    }
+    
+    fun toggleWishlist(product: Product): Boolean {
+        val isInWishlist = _wishlistItems.value.any { it.id == product.id }
+        if (isInWishlist) {
+            removeFromWishlist(product.id)
+        } else {
+            addToWishlist(product)
+        }
+        return !isInWishlist
+    }
+    
+    fun isInWishlist(productId: Int): Boolean {
+        return _wishlistItems.value.any { it.id == productId }
     }
     
     // Order functions

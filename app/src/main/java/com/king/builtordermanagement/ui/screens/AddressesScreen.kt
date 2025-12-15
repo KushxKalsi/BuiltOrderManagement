@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.king.builtordermanagement.data.models.Order
 import com.king.builtordermanagement.data.models.User
 import com.king.builtordermanagement.ui.components.*
 import com.king.builtordermanagement.ui.theme.*
@@ -23,9 +24,30 @@ import com.king.builtordermanagement.ui.theme.*
 @Composable
 fun AddressesScreen(
     user: User?,
+    orders: List<Order> = emptyList(),
     onBackClick: () -> Unit
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
+    
+    // Collect unique addresses from user profile and orders
+    val allAddresses = remember(user, orders) {
+        val addresses = mutableListOf<Pair<String, String>>() // title to address
+        
+        // Add user's registered address
+        if (user?.address != null && user.address.isNotBlank()) {
+            addresses.add("Home" to user.address)
+        }
+        
+        // Add unique addresses from orders
+        orders.forEach { order ->
+            if (order.shippingAddress.isNotBlank() && 
+                addresses.none { it.second.equals(order.shippingAddress, ignoreCase = true) }) {
+                addresses.add("Order #${order.id}" to order.shippingAddress)
+            }
+        }
+        
+        addresses
+    }
     
     Scaffold(
         topBar = {
@@ -50,7 +72,7 @@ fun AddressesScreen(
             }
         }
     ) { padding ->
-        if (user?.address != null && user.address.isNotBlank()) {
+        if (allAddresses.isNotEmpty()) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -58,11 +80,11 @@ fun AddressesScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
+                items(allAddresses) { (title, address) ->
                     AddressCard(
-                        title = "Home",
-                        address = user.address,
-                        isDefault = true,
+                        title = title,
+                        address = address,
+                        isDefault = title == "Home",
                         onEdit = { },
                         onDelete = { }
                     )

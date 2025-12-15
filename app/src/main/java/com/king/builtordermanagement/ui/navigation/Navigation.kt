@@ -61,6 +61,7 @@ fun StoreNavHost(
     val cartItems by viewModel.cartItems.collectAsState()
     val cartTotal by viewModel.cartTotal.collectAsState()
     val cartItemCount by viewModel.cartItemCount.collectAsState()
+    val wishlistItems by viewModel.wishlistItems.collectAsState()
     
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
     
@@ -186,8 +187,10 @@ fun StoreNavHost(
             selectedProduct?.let { product ->
                 ProductDetailScreen(
                     product = product,
+                    isInWishlist = viewModel.isInWishlist(product.id),
                     onBackClick = { navController.popBackStack() },
                     onAddToCart = { viewModel.addToCart(it) },
+                    onToggleWishlist = { viewModel.toggleWishlist(it) },
                     onBuyNow = { 
                         viewModel.addToCart(it)
                         if (isLoggedIn) {
@@ -270,15 +273,26 @@ fun StoreNavHost(
         }
         
         composable(Screen.Addresses.route) {
+            LaunchedEffect(Unit) {
+                viewModel.loadUserOrders()
+            }
             AddressesScreen(
                 user = currentUser,
+                orders = uiState.orders,
                 onBackClick = { navController.popBackStack() }
             )
         }
         
         composable(Screen.Wishlist.route) {
             WishlistScreen(
-                onBackClick = { navController.popBackStack() }
+                wishlistItems = wishlistItems,
+                onBackClick = { navController.popBackStack() },
+                onProductClick = { product ->
+                    selectedProduct = product
+                    navController.navigate("product/${product.id}")
+                },
+                onRemoveFromWishlist = { viewModel.removeFromWishlist(it) },
+                onAddToCart = { viewModel.addToCart(it) }
             )
         }
         

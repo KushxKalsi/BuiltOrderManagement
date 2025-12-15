@@ -1,6 +1,5 @@
 package com.king.builtordermanagement.ui.screens
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -179,17 +178,6 @@ fun HomeScreen(
 
 @Composable
 private fun PromoBanner(onShopNowClick: () -> Unit = {}) {
-    val infiniteTransition = rememberInfiniteTransition(label = "banner")
-    val animatedOffset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offset"
-    )
-    
     val scale = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
     
@@ -317,48 +305,12 @@ private fun FeaturedProductsRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        itemsIndexed(products) { index, product ->
-            val animatedAlpha = remember { Animatable(0f) }
-            val animatedOffset = remember { Animatable(80f) }
-            val animatedScale = remember { Animatable(0.85f) }
-            
-            LaunchedEffect(product) {
-                animatedAlpha.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(
-                        durationMillis = 600,
-                        delayMillis = index * 100,
-                        easing = FastOutSlowInEasing
-                    )
-                )
-                animatedOffset.animateTo(
-                    targetValue = 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
-                animatedScale.animateTo(
-                    targetValue = 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
-            }
-            
+        items(products) { product ->
             ProductCard(
                 product = product,
                 onClick = { onProductClick(product) },
                 onAddToCart = { onAddToCart(product) },
-                modifier = Modifier
-                    .width(180.dp)
-                    .graphicsLayer {
-                        alpha = animatedAlpha.value
-                        translationX = animatedOffset.value
-                        scaleX = animatedScale.value
-                        scaleY = animatedScale.value
-                    }
+                modifier = Modifier.width(180.dp)
             )
         }
     }
