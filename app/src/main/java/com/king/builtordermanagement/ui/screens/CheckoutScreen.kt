@@ -1,6 +1,7 @@
 package com.king.builtordermanagement.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,12 +18,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.king.builtordermanagement.data.models.CartItem
 import com.king.builtordermanagement.data.models.User
 import com.king.builtordermanagement.ui.components.*
 import com.king.builtordermanagement.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +43,25 @@ fun CheckoutScreen(
     var notes by remember { mutableStateOf("") }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var orderMessage by remember { mutableStateOf("") }
+    
+    // Entrance animations
+    val contentAlpha = remember { androidx.compose.animation.core.Animatable(0f) }
+    val contentOffset = remember { androidx.compose.animation.core.Animatable(50f) }
+    
+    LaunchedEffect(Unit) {
+        launch {
+            contentAlpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(400, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+            )
+        }
+        launch {
+            contentOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(400, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+            )
+        }
+    }
     
     if (currentUser == null) {
         LaunchedEffect(Unit) {
@@ -67,6 +89,10 @@ fun CheckoutScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .graphicsLayer {
+                    alpha = contentAlpha.value
+                    translationY = contentOffset.value
+                }
                 .verticalScroll(rememberScrollState())
         ) {
             // Order Summary
@@ -319,12 +345,33 @@ private fun PaymentOption(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val borderColor = if (isSelected) PrimaryColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-    val backgroundColor = if (isSelected) PrimaryColor.copy(alpha = 0.1f) else Color.Transparent
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) PrimaryColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+        animationSpec = tween(300),
+        label = "borderColor"
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) PrimaryColor.copy(alpha = 0.1f) else Color.Transparent,
+        animationSpec = tween(300),
+        label = "backgroundColor"
+    )
+    
+    val scale = remember { androidx.compose.animation.core.Animatable(1f) }
+    
+    LaunchedEffect(isSelected) {
+        if (isSelected) {
+            scale.animateTo(1.02f, spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy))
+            scale.animateTo(1f, spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBouncy))
+        }
+    }
     
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
             .clip(RoundedCornerShape(12.dp))
             .border(1.dp, borderColor, RoundedCornerShape(12.dp))
             .background(backgroundColor)

@@ -40,7 +40,8 @@ fun HomeScreen(
     onCategoryClick: (Category) -> Unit,
     onCartClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onSeeAllClick: (String) -> Unit
 ) {
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
     
@@ -98,7 +99,7 @@ fun HomeScreen(
             
             // Categories Section
             item {
-                SectionHeader(title = "Categories", onSeeAllClick = {})
+                SectionHeader(title = "Categories", onSeeAllClick = { onSeeAllClick("category") })
             }
             
             item {
@@ -125,7 +126,7 @@ fun HomeScreen(
             
             // Featured Products Section
             item {
-                SectionHeader(title = "Featured Products ✨", onSeeAllClick = {})
+                SectionHeader(title = "Featured Products ✨", onSeeAllClick = { onSeeAllClick("featured") })
             }
             
             item {
@@ -149,7 +150,7 @@ fun HomeScreen(
             
             // All Products Section
             item {
-                SectionHeader(title = "All Products", onSeeAllClick = {})
+                SectionHeader(title = "All Products", onSeeAllClick = { onSeeAllClick("all") })
             }
             
             item {

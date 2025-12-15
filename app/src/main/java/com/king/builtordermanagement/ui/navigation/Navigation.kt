@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
+import androidx.navigation.NavBackStackEntry
 import com.king.builtordermanagement.data.models.Product
 import com.king.builtordermanagement.ui.screens.*
 import com.king.builtordermanagement.ui.theme.PrimaryColor
@@ -26,6 +27,7 @@ sealed class Screen(val route: String) {
     object ProductDetail : Screen("product/{productId}")
     object Checkout : Screen("checkout")
     object Orders : Screen("orders")
+    object AllProducts : Screen("all_products/{type}")
 }
 
 data class BottomNavItem(
@@ -60,7 +62,31 @@ fun StoreNavHost(
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = {
+            slideIntoContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(300))
+        },
+        exitTransition = {
+            slideOutOfContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(300))
+        },
+        popEnterTransition = {
+            slideIntoContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(300))
+        },
+        popExitTransition = {
+            slideOutOfContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(300))
+        }
     ) {
         composable(Screen.Home.route) {
             HomeScreen(
@@ -74,7 +100,10 @@ fun StoreNavHost(
                 onCategoryClick = { viewModel.loadProductsByCategory(it.id) },
                 onCartClick = { navController.navigate(Screen.Cart.route) },
                 onSearchClick = { navController.navigate(Screen.Search.route) },
-                onRefresh = { viewModel.loadInitialData() }
+                onRefresh = { viewModel.loadInitialData() },
+                onSeeAllClick = { type ->
+                    navController.navigate("all_products/$type")
+                }
             )
         }
         
@@ -186,6 +215,32 @@ fun StoreNavHost(
                 onBackClick = { navController.popBackStack() },
                 onOrderClick = { /* Navigate to order detail */ },
                 onRefresh = { viewModel.loadUserOrders() }
+            )
+        }
+        
+        composable("all_products/{type}") { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type") ?: "all"
+            val products = when (type) {
+                "featured" -> uiState.featuredProducts
+                "category" -> uiState.categoryProducts
+                else -> uiState.products
+            }
+            val title = when (type) {
+                "featured" -> "Featured Products"
+                "category" -> "Category Products"
+                else -> "All Products"
+            }
+            
+            AllProductsScreen(
+                title = title,
+                products = products,
+                isLoading = uiState.isLoadingProducts,
+                onBackClick = { navController.popBackStack() },
+                onProductClick = { product ->
+                    selectedProduct = product
+                    navController.navigate("product/${product.id}")
+                },
+                onAddToCart = { viewModel.addToCart(it) }
             )
         }
     }

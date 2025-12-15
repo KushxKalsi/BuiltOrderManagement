@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.king.builtordermanagement.data.models.Product
 import com.king.builtordermanagement.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProductCard(
@@ -38,19 +39,60 @@ fun ProductCard(
     modifier: Modifier = Modifier
 ) {
     var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "scale"
-    )
+    val scale = remember { Animatable(1f) }
+    val elevation = remember { Animatable(2f) }
+    
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            launch {
+                scale.animateTo(
+                    targetValue = 0.95f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+            }
+            launch {
+                elevation.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(100)
+                )
+            }
+        } else {
+            launch {
+                scale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+            }
+            launch {
+                elevation.animateTo(
+                    targetValue = 2f,
+                    animationSpec = tween(100)
+                )
+            }
+        }
+    }
     
     Card(
         modifier = modifier
-            .scale(scale)
-            .shadow(8.dp, RoundedCornerShape(16.dp))
-            .clickable { onClick() },
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null
+            ) {
+                onClick()
+            },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation.value.dp)
     ) {
         Column {
             Box(
@@ -84,12 +126,31 @@ fun ProductCard(
                     }
                 }
                 
+                var addButtonPressed by remember { mutableStateOf(false) }
+                val addButtonScale = remember { Animatable(1f) }
+                
+                LaunchedEffect(addButtonPressed) {
+                    if (addButtonPressed) {
+                        addButtonScale.animateTo(0.7f, tween(100))
+                        addButtonScale.animateTo(1.2f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                        addButtonScale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                        addButtonPressed = false
+                    }
+                }
+                
                 IconButton(
-                    onClick = onAddToCart,
+                    onClick = {
+                        addButtonPressed = true
+                        onAddToCart()
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(8.dp)
                         .size(36.dp)
+                        .graphicsLayer {
+                            scaleX = addButtonScale.value
+                            scaleY = addButtonScale.value
+                        }
                         .background(PrimaryColor, CircleShape)
                 ) {
                     Icon(
@@ -167,15 +228,31 @@ fun CategoryChip(
 ) {
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected) PrimaryColor else MaterialTheme.colorScheme.surfaceVariant,
-        animationSpec = tween(300),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "bgColor"
     )
     
+    val scale = remember { Animatable(1f) }
+    
+    LaunchedEffect(isSelected) {
+        if (isSelected) {
+            scale.animateTo(1.05f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+            scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+        }
+    }
+    
     Card(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 4.dp else 0.dp
+        )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -254,9 +331,28 @@ fun GradientButton(
     enabled: Boolean = true,
     isLoading: Boolean = false
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale = remember { Animatable(1f) }
+    
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            scale.animateTo(0.95f, tween(100))
+            scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+            isPressed = false
+        }
+    }
+    
     Button(
-        onClick = onClick,
-        modifier = modifier.height(56.dp),
+        onClick = {
+            isPressed = true
+            onClick()
+        },
+        modifier = modifier
+            .height(56.dp)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            },
         enabled = enabled && !isLoading,
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(

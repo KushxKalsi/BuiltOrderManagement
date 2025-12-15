@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -25,6 +26,8 @@ import coil.compose.AsyncImage
 import com.king.builtordermanagement.data.models.Product
 import com.king.builtordermanagement.ui.components.*
 import com.king.builtordermanagement.ui.theme.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +41,35 @@ fun ProductDetailScreen(
     var isFavorite by remember { mutableStateOf(false) }
     
     val scrollState = rememberScrollState()
+    
+    // Entrance animations
+    val imageAlpha = remember { Animatable(0f) }
+    val imageScale = remember { Animatable(0.8f) }
+    val contentOffset = remember { Animatable(100f) }
+    val contentAlpha = remember { Animatable(0f) }
+    
+    LaunchedEffect(Unit) {
+        imageAlpha.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(500, easing = FastOutSlowInEasing)
+        )
+        imageScale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        )
+        delay(200)
+        contentOffset.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(400, easing = FastOutSlowInEasing)
+        )
+        contentAlpha.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(400, easing = FastOutSlowInEasing)
+        )
+    }
     
     Scaffold(
         topBar = {
@@ -97,6 +129,11 @@ fun ProductDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(350.dp)
+                    .graphicsLayer {
+                        alpha = imageAlpha.value
+                        scaleX = imageScale.value
+                        scaleY = imageScale.value
+                    }
             ) {
                 AsyncImage(
                     model = product.imageUrl,
@@ -128,7 +165,11 @@ fun ProductDetailScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-24).dp),
+                    .offset(y = (-24).dp)
+                    .graphicsLayer {
+                        alpha = contentAlpha.value
+                        translationY = contentOffset.value
+                    },
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
@@ -258,22 +299,55 @@ fun ProductDetailScreen(
                                     RoundedCornerShape(12.dp)
                                 )
                         ) {
+                            val scale = remember { Animatable(1f) }
+                            val scope = rememberCoroutineScope()
+                            
                             IconButton(
-                                onClick = { if (quantity > 1) quantity-- },
+                                onClick = { 
+                                    if (quantity > 1) {
+                                        quantity--
+                                        scope.launch {
+                                            scale.animateTo(0.8f, tween(100))
+                                            scale.animateTo(1f, tween(100))
+                                        }
+                                    }
+                                },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(Icons.Default.Remove, contentDescription = "Decrease")
                             }
                             
-                            Text(
-                                text = quantity.toString(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
+                            AnimatedContent(
+                                targetState = quantity,
+                                transitionSpec = {
+                                    if (targetState > initialState) {
+                                        slideInVertically { -it } + fadeIn() togetherWith
+                                                slideOutVertically { it } + fadeOut()
+                                    } else {
+                                        slideInVertically { it } + fadeIn() togetherWith
+                                                slideOutVertically { -it } + fadeOut()
+                                    }.using(SizeTransform(clip = false))
+                                },
+                                label = "quantity"
+                            ) { targetQuantity ->
+                                Text(
+                                    text = targetQuantity.toString(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                            }
                             
                             IconButton(
-                                onClick = { if (quantity < product.stock) quantity++ },
+                                onClick = { 
+                                    if (quantity < product.stock) {
+                                        quantity++
+                                        scope.launch {
+                                            scale.animateTo(0.8f, tween(100))
+                                            scale.animateTo(1f, tween(100))
+                                        }
+                                    }
+                                },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = "Increase")
