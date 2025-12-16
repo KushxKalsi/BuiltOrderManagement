@@ -32,6 +32,9 @@ function createOrder() {
     
     $userId = intval($data['user_id']);
     $totalAmount = floatval($data['total_amount']);
+    $discountAmount = isset($data['discount_amount']) ? floatval($data['discount_amount']) : 0;
+    $couponCode = isset($data['coupon_code']) ? $conn->real_escape_string($data['coupon_code']) : null;
+    $finalAmount = $totalAmount - $discountAmount;
     $shippingAddress = $conn->real_escape_string($data['shipping_address']);
     $paymentMethod = isset($data['payment_method']) ? $conn->real_escape_string($data['payment_method']) : 'COD';
     $notes = isset($data['notes']) ? $conn->real_escape_string($data['notes']) : '';
@@ -41,8 +44,9 @@ function createOrder() {
     
     try {
         // Create order
-        $sql = "INSERT INTO orders (user_id, total_amount, shipping_address, payment_method, notes) 
-                VALUES ($userId, $totalAmount, '$shippingAddress', '$paymentMethod', '$notes')";
+        $couponCodeSql = $couponCode ? "'$couponCode'" : "NULL";
+        $sql = "INSERT INTO orders (user_id, total_amount, discount_amount, coupon_code, final_amount, shipping_address, payment_method, notes) 
+                VALUES ($userId, $totalAmount, $discountAmount, $couponCodeSql, $finalAmount, '$shippingAddress', '$paymentMethod', '$notes')";
         
         if (!$conn->query($sql)) {
             throw new Exception("Failed to create order");
@@ -65,6 +69,16 @@ function createOrder() {
             
             // Update stock
             $conn->query("UPDATE products SET stock = stock - $quantity WHERE id = $productId");
+        }
+        
+        // Record coupon usage if coupon was applied
+        if ($couponCode) {
+            $couponResult = $conn->query("SELECT id FROM coupons WHERE code = '$couponCode'");
+            if ($couponResult->num_rows > 0) {
+                $couponId = $couponResult->fetch_assoc()['id'];
+                $conn->query("INSERT INTO coupon_usage (coupon_id, user_id, order_id, discount_amount) VALUES ($couponId, $userId, $orderId, $discountAmount)");
+                $conn->query("UPDATE coupons SET used_count = used_count + 1 WHERE id = $couponId");
+            }
         }
         
         $conn->commit();

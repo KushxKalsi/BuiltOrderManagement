@@ -42,6 +42,9 @@ $sql_orders = "CREATE TABLE IF NOT EXISTS orders (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,
+    discount_amount DECIMAL(10, 2) DEFAULT 0,
+    coupon_code VARCHAR(50) DEFAULT NULL,
+    final_amount DECIMAL(10, 2) NOT NULL,
     status ENUM('pending', 'confirmed', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
     shipping_address TEXT NOT NULL,
     payment_method VARCHAR(50),
@@ -61,12 +64,42 @@ $sql_order_items = "CREATE TABLE IF NOT EXISTS order_items (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB";
 
+// Create coupons table
+$sql_coupons = "CREATE TABLE IF NOT EXISTS coupons (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    description VARCHAR(255),
+    discount_type ENUM('percentage', 'fixed') NOT NULL DEFAULT 'percentage',
+    discount_value DECIMAL(10, 2) NOT NULL,
+    min_order_amount DECIMAL(10, 2) DEFAULT 0,
+    max_discount DECIMAL(10, 2) DEFAULT NULL,
+    usage_limit INT DEFAULT NULL,
+    used_count INT DEFAULT 0,
+    start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    end_date DATETIME DEFAULT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB";
+
+// Create coupon_usage table WITHOUT foreign keys first (to avoid constraint issues with existing tables)
+$sql_coupon_usage = "CREATE TABLE IF NOT EXISTS coupon_usage (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    coupon_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    order_id INT UNSIGNED NOT NULL,
+    discount_amount DECIMAL(10, 2) NOT NULL,
+    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_coupon_id (coupon_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_order_id (order_id)
+) ENGINE=InnoDB";
+
+// First create tables without coupon_usage
 $tables = [
     "users" => $sql_users,
     "categories" => $sql_categories,
     "products" => $sql_products,
-    "orders" => $sql_orders,
-    "order_items" => $sql_order_items
+    "coupons" => $sql_coupons
 ];
 
 $results = [];
@@ -77,6 +110,40 @@ foreach ($tables as $name => $sql) {
     } else {
         $results[$name] = "Error: " . $conn->error;
     }
+}
+
+// Check if orders table exists and has old structure - drop and recreate if needed
+$ordersCheck = $conn->query("SHOW COLUMNS FROM orders LIKE 'final_amount'");
+$ordersExists = $conn->query("SHOW TABLES LIKE 'orders'")->num_rows > 0;
+
+if ($ordersExists && $ordersCheck && $ordersCheck->num_rows == 0) {
+    // Old orders table exists without new columns - add them
+    $conn->query("ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0 AFTER total_amount");
+    $conn->query("ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(50) DEFAULT NULL AFTER discount_amount");
+    $conn->query("ALTER TABLE orders ADD COLUMN final_amount DECIMAL(10, 2) DEFAULT 0 AFTER coupon_code");
+    $conn->query("UPDATE orders SET final_amount = total_amount WHERE final_amount = 0");
+    $results["orders"] = "Updated with new columns";
+} else {
+    // Create orders table
+    if ($conn->query($sql_orders) === TRUE) {
+        $results["orders"] = "Created successfully";
+    } else {
+        $results["orders"] = "Error: " . $conn->error;
+    }
+}
+
+// Create order_items
+if ($conn->query($sql_order_items) === TRUE) {
+    $results["order_items"] = "Created successfully";
+} else {
+    $results["order_items"] = "Error: " . $conn->error;
+}
+
+// Create coupon_usage
+if ($conn->query($sql_coupon_usage) === TRUE) {
+    $results["coupon_usage"] = "Created successfully";
+} else {
+    $results["coupon_usage"] = "Error: " . $conn->error;
 }
 
 // Insert sample categories
@@ -108,6 +175,20 @@ $sample_products = [
 foreach ($sample_products as $prod) {
     $stmt = $conn->prepare("INSERT IGNORE INTO products (category_id, name, description, price, discount_price, image_url, stock, rating, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("issddsidb", $prod[0], $prod[1], $prod[2], $prod[3], $prod[4], $prod[5], $prod[6], $prod[7], $prod[8]);
+    $stmt->execute();
+}
+
+// Insert sample coupons
+$sample_coupons = [
+    ["WELCOME10", "Welcome discount - 10% off on your first order", "percentage", 10.00, 0, 50.00, 100, "2024-01-01 00:00:00", "2025-12-31 23:59:59"],
+    ["FLAT20", "Flat $20 off on orders above $100", "fixed", 20.00, 100.00, null, 50, "2024-01-01 00:00:00", "2025-12-31 23:59:59"],
+    ["SAVE15", "Save 15% on all products", "percentage", 15.00, 50.00, 30.00, null, "2024-01-01 00:00:00", "2025-12-31 23:59:59"],
+    ["SUMMER25", "Summer sale - 25% off", "percentage", 25.00, 75.00, 100.00, 200, "2024-06-01 00:00:00", "2025-08-31 23:59:59"]
+];
+
+foreach ($sample_coupons as $coupon) {
+    $stmt = $conn->prepare("INSERT IGNORE INTO coupons (code, description, discount_type, discount_value, min_order_amount, max_discount, usage_limit, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssdddiis", $coupon[0], $coupon[1], $coupon[2], $coupon[3], $coupon[4], $coupon[5], $coupon[6], $coupon[7], $coupon[8]);
     $stmt->execute();
 }
 

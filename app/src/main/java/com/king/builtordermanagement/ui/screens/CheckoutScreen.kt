@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.king.builtordermanagement.data.models.CartItem
+import com.king.builtordermanagement.data.models.Coupon
 import com.king.builtordermanagement.data.models.User
 import com.king.builtordermanagement.ui.components.*
 import com.king.builtordermanagement.ui.theme.*
@@ -34,8 +35,13 @@ fun CheckoutScreen(
     cartTotal: Double,
     currentUser: User?,
     isLoading: Boolean,
+    isValidatingCoupon: Boolean = false,
+    appliedCoupon: Coupon? = null,
+    availableCoupons: List<Coupon> = emptyList(),
     onBackClick: () -> Unit,
-    onPlaceOrder: (String, String, String?, (Boolean, String?) -> Unit) -> Unit,
+    onValidateCoupon: (String, Double, (Boolean, Coupon?, String?) -> Unit) -> Unit = { _, _, _ -> },
+    onRemoveCoupon: () -> Unit = {},
+    onPlaceOrder: (String, String, String?, Double, String?, (Boolean, String?) -> Unit) -> Unit,
     onLoginRequired: () -> Unit
 ) {
     var shippingAddress by remember { mutableStateOf(currentUser?.address ?: "") }
@@ -43,25 +49,12 @@ fun CheckoutScreen(
     var notes by remember { mutableStateOf("") }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var orderMessage by remember { mutableStateOf("") }
-    
-    // Entrance animations
-    val contentAlpha = remember { androidx.compose.animation.core.Animatable(0f) }
-    val contentOffset = remember { androidx.compose.animation.core.Animatable(50f) }
-    
-    LaunchedEffect(Unit) {
-        launch {
-            contentAlpha.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(400, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-            )
-        }
-        launch {
-            contentOffset.animateTo(
-                targetValue = 0f,
-                animationSpec = tween(400, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-            )
-        }
-    }
+    var couponCode by remember { mutableStateOf("") }
+    var couponError by remember { mutableStateOf<String?>(null) }
+    var showCouponsSheet by remember { mutableStateOf(false) }
+
+    val discountAmount = appliedCoupon?.discountAmount ?: 0.0
+    val finalTotal = cartTotal - discountAmount
     
     if (currentUser == null) {
         LaunchedEffect(Unit) {
@@ -89,34 +82,21 @@ fun CheckoutScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .graphicsLayer {
-                    alpha = contentAlpha.value
-                    translationY = contentOffset.value
-                }
                 .verticalScroll(rememberScrollState())
         ) {
             // Order Summary
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "Order Summary",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
+                    Text("Order Summary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     cartItems.forEach { item ->
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
@@ -134,50 +114,119 @@ fun CheckoutScreen(
                     
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "Total",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "$${String.format("%.2f", cartTotal)}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryColor
-                        )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Subtotal", style = MaterialTheme.typography.bodyMedium)
+                        Text("$${String.format("%.2f", cartTotal)}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    
+                    if (appliedCoupon != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Discount (${appliedCoupon.code})", style = MaterialTheme.typography.bodyMedium, color = SuccessColor)
+                            Text("-$${String.format("%.2f", discountAmount)}", style = MaterialTheme.typography.bodyMedium, color = SuccessColor)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("$${String.format("%.2f", finalTotal)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PrimaryColor)
                     }
                 }
             }
-            
-            // Shipping Address
+
+            // Coupon Section
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Outlined.LocationOn,
-                            contentDescription = null,
-                            tint = PrimaryColor
-                        )
+                        Icon(Icons.Outlined.LocalOffer, contentDescription = null, tint = PrimaryColor)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Shipping Address",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Apply Coupon", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (availableCoupons.isNotEmpty()) {
+                            TextButton(onClick = { showCouponsSheet = true }) {
+                                Text("View All", color = PrimaryColor)
+                            }
+                        }
                     }
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
+                    if (appliedCoupon != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                .background(SuccessColor.copy(alpha = 0.1f)).padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessColor, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(appliedCoupon.code, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = SuccessColor)
+                                Text("You saved $${String.format("%.2f", discountAmount)}", style = MaterialTheme.typography.bodySmall, color = SuccessColor)
+                            }
+                            IconButton(onClick = onRemoveCoupon) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove coupon", tint = SuccessColor)
+                            }
+                        }
+                    } else {
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = couponCode,
+                                onValueChange = { couponCode = it.uppercase(); couponError = null },
+                                modifier = Modifier.weight(1f),
+                                placeholder = { Text("Enter coupon code") },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                isError = couponError != null,
+                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryColor)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    if (couponCode.isNotBlank()) {
+                                        onValidateCoupon(couponCode, cartTotal) { success, _, error ->
+                                            if (!success) couponError = error else couponCode = ""
+                                        }
+                                    }
+                                },
+                                enabled = couponCode.isNotBlank() && !isValidatingCoupon,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                if (isValidatingCoupon) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                                } else {
+                                    Text("Apply")
+                                }
+                            }
+                        }
+                        if (couponError != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(couponError!!, style = MaterialTheme.typography.bodySmall, color = ErrorColor)
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Shipping Address
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = PrimaryColor)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Shipping Address", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = shippingAddress,
                         onValueChange = { shippingAddress = it },
@@ -185,9 +234,7 @@ fun CheckoutScreen(
                         placeholder = { Text("Enter your shipping address") },
                         minLines = 3,
                         shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryColor
-                        )
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryColor)
                     )
                 }
             }
@@ -196,46 +243,20 @@ fun CheckoutScreen(
             
             // Payment Method
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Outlined.Payment,
-                            contentDescription = null,
-                            tint = PrimaryColor
-                        )
+                        Icon(Icons.Outlined.Payment, contentDescription = null, tint = PrimaryColor)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Payment Method",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Payment Method", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
-                    
                     Spacer(modifier = Modifier.height(12.dp))
-                    
-                    PaymentOption(
-                        title = "Cash on Delivery",
-                        subtitle = "Pay when you receive",
-                        icon = Icons.Outlined.LocalShipping,
-                        isSelected = selectedPaymentMethod == "COD",
-                        onClick = { selectedPaymentMethod = "COD" }
-                    )
-                    
+                    PaymentOption("Cash on Delivery", "Pay when you receive", Icons.Outlined.LocalShipping, selectedPaymentMethod == "COD") { selectedPaymentMethod = "COD" }
                     Spacer(modifier = Modifier.height(8.dp))
-                    
-                    PaymentOption(
-                        title = "Online Payment",
-                        subtitle = "Pay with card or UPI",
-                        icon = Icons.Outlined.CreditCard,
-                        isSelected = selectedPaymentMethod == "Online",
-                        onClick = { selectedPaymentMethod = "Online" }
-                    )
+                    PaymentOption("Online Payment", "Pay with card or UPI", Icons.Outlined.CreditCard, selectedPaymentMethod == "Online") { selectedPaymentMethod = "Online" }
                 }
             }
             
@@ -243,29 +264,17 @@ fun CheckoutScreen(
             
             // Notes
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Outlined.Note,
-                            contentDescription = null,
-                            tint = PrimaryColor
-                        )
+                        Icon(Icons.Outlined.Note, contentDescription = null, tint = PrimaryColor)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Order Notes (Optional)",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Order Notes (Optional)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
-                    
                     Spacer(modifier = Modifier.height(12.dp))
-                    
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
@@ -273,23 +282,23 @@ fun CheckoutScreen(
                         placeholder = { Text("Any special instructions?") },
                         minLines = 2,
                         shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryColor
-                        )
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryColor)
                     )
                 }
             }
             
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Place Order Button
             GradientButton(
-                text = "Place Order - $${String.format("%.2f", cartTotal)}",
+                text = "Place Order - $${String.format("%.2f", finalTotal)}",
                 onClick = {
                     onPlaceOrder(
                         shippingAddress,
                         selectedPaymentMethod,
-                        notes.ifBlank { null }
+                        notes.ifBlank { null },
+                        discountAmount,
+                        appliedCoupon?.code
                     ) { success, message ->
                         if (success) {
                             orderMessage = message ?: "Order placed successfully!"
@@ -297,9 +306,7 @@ fun CheckoutScreen(
                         }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 isLoading = isLoading,
                 enabled = shippingAddress.isNotBlank()
             )
@@ -312,30 +319,64 @@ fun CheckoutScreen(
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = { },
-            icon = {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = SuccessColor,
-                    modifier = Modifier.size(48.dp)
-                )
-            },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessColor, modifier = Modifier.size(48.dp)) },
             title = { Text("Order Placed!", fontWeight = FontWeight.Bold) },
             text = { Text(orderMessage) },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showSuccessDialog = false
-                        onBackClick()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                ) {
+                Button(onClick = { showSuccessDialog = false; onBackClick() }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)) {
                     Text("Continue Shopping")
                 }
             }
         )
     }
+    
+    // Available Coupons Bottom Sheet
+    if (showCouponsSheet) {
+        ModalBottomSheet(onDismissRequest = { showCouponsSheet = false }) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Available Coupons", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+                availableCoupons.forEach { coupon ->
+                    CouponCard(
+                        coupon = coupon,
+                        onApply = {
+                            onValidateCoupon(coupon.code, cartTotal) { success, _, _ ->
+                                if (success) showCouponsSheet = false
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
 }
+
+@Composable
+private fun CouponCard(coupon: Coupon, onApply: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(coupon.code, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                Text(
+                    coupon.description ?: if (coupon.discountType == "percentage") "${coupon.discountValue.toInt()}% off" else "$${coupon.discountValue} off",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (coupon.minOrderAmount > 0) {
+                    Text("Min. order: $${String.format("%.0f", coupon.minOrderAmount)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            OutlinedButton(onClick = onApply, shape = RoundedCornerShape(8.dp)) { Text("Apply") }
+        }
+    }
+}
+
 
 @Composable
 private fun PaymentOption(
@@ -356,22 +397,9 @@ private fun PaymentOption(
         label = "backgroundColor"
     )
     
-    val scale = remember { androidx.compose.animation.core.Animatable(1f) }
-    
-    LaunchedEffect(isSelected) {
-        if (isSelected) {
-            scale.animateTo(1.02f, spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy))
-            scale.animateTo(1f, spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBouncy))
-        }
-    }
-    
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
-            }
             .clip(RoundedCornerShape(12.dp))
             .border(1.dp, borderColor, RoundedCornerShape(12.dp))
             .background(backgroundColor)
@@ -379,31 +407,12 @@ private fun PaymentOption(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = if (isSelected) PrimaryColor else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        
+        Icon(icon, contentDescription = null, tint = if (isSelected) PrimaryColor else MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.width(12.dp))
-        
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        
-        RadioButton(
-            selected = isSelected,
-            onClick = onClick,
-            colors = RadioButtonDefaults.colors(selectedColor = PrimaryColor)
-        )
+        RadioButton(selected = isSelected, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = PrimaryColor))
     }
 }

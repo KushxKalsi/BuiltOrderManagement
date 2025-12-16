@@ -93,6 +93,8 @@ data class RegisterRequest(
 data class OrderRequest(
     @SerializedName("user_id") val userId: Int,
     @SerializedName("total_amount") val totalAmount: Double,
+    @SerializedName("discount_amount") val discountAmount: Double = 0.0,
+    @SerializedName("coupon_code") val couponCode: String? = null,
     @SerializedName("shipping_address") val shippingAddress: String,
     @SerializedName("payment_method") val paymentMethod: String = "COD",
     val notes: String? = null,
@@ -103,4 +105,30 @@ data class OrderItemRequest(
     @SerializedName("product_id") val productId: Int,
     val quantity: Int,
     val price: Double
+)
+
+// Coupon Models
+data class Coupon(
+    val id: Int = 0,
+    val code: String = "",
+    val description: String? = null,
+    @SerializedName("discount_type") val discountType: String = "percentage",
+    @SerializedName("discount_value") val discountValue: Double = 0.0,
+    @SerializedName("min_order_amount") val minOrderAmount: Double = 0.0,
+    @SerializedName("max_discount") val maxDiscount: Double? = null,
+    @SerializedName("discount_amount") val discountAmount: Double? = null,
+    @SerializedName("final_amount") val finalAmount: Double? = null
+)
+
+data class CouponValidateRequest(
+    val code: String,
+    @SerializedName("order_amount") val orderAmount: Double,
+    @SerializedName("user_id") val userId: Int? = null
+)
+
+data class CouponResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val coupon: Coupon? = null,
+    val coupons: List<Coupon>? = null
 )

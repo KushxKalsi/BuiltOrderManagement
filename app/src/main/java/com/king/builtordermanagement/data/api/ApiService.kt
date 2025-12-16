@@ -54,4 +54,11 @@ interface ApiService {
     
     @POST("orders.php?action=cancel")
     suspend fun cancelOrder(@Body data: Map<String, Int>): ApiResponse<Order>
+    
+    // Coupon endpoints
+    @POST("coupons.php?action=validate")
+    suspend fun validateCoupon(@Body request: CouponValidateRequest): CouponResponse
+    
+    @GET("coupons.php?action=list")
+    suspend fun getActiveCoupons(): CouponResponse
 }

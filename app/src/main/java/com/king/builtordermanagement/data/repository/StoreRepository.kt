@@ -109,7 +109,9 @@ class StoreRepository {
         shippingAddress: String,
         paymentMethod: String,
         notes: String?,
-        items: List<CartItem>
+        items: List<CartItem>,
+        discountAmount: Double = 0.0,
+        couponCode: String? = null
     ): Result<Int> = withContext(Dispatchers.IO) {
         try {
             val orderItems = items.map { 
@@ -119,7 +121,16 @@ class StoreRepository {
                     price = it.product.discountPrice ?: it.product.price
                 )
             }
-            val request = OrderRequest(userId, totalAmount, shippingAddress, paymentMethod, notes, orderItems)
+            val request = OrderRequest(
+                userId = userId, 
+                totalAmount = totalAmount, 
+                discountAmount = discountAmount,
+                couponCode = couponCode,
+                shippingAddress = shippingAddress, 
+                paymentMethod = paymentMethod, 
+                notes = notes, 
+                items = orderItems
+            )
             val response = api.createOrder(request)
             if (response.success && response.orderId != null) {
                 Result.success(response.orderId)
@@ -164,6 +175,33 @@ class StoreRepository {
                 Result.success(true)
             } else {
                 Result.failure(Exception(response.message ?: "Failed to cancel order"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // Coupons
+    suspend fun validateCoupon(code: String, orderAmount: Double, userId: Int?): Result<Coupon> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.validateCoupon(CouponValidateRequest(code, orderAmount, userId))
+            if (response.success && response.coupon != null) {
+                Result.success(response.coupon)
+            } else {
+                Result.failure(Exception(response.message ?: "Invalid coupon"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getActiveCoupons(): Result<List<Coupon>> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getActiveCoupons()
+            if (response.success) {
+                Result.success(response.coupons ?: emptyList())
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to fetch coupons"))
             }
         } catch (e: Exception) {
             Result.failure(e)

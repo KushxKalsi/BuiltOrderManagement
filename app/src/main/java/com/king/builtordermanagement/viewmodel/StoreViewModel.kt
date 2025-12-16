@@ -223,8 +223,47 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         return _wishlistItems.value.any { it.id == productId }
     }
     
+    // Coupon functions
+    fun validateCoupon(code: String, orderAmount: Double, onResult: (Boolean, Coupon?, String?) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isValidatingCoupon = true) }
+            repository.validateCoupon(code, orderAmount, currentUser.value?.id).fold(
+                onSuccess = { coupon ->
+                    _uiState.update { it.copy(appliedCoupon = coupon, isValidatingCoupon = false) }
+                    onResult(true, coupon, null)
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isValidatingCoupon = false) }
+                    onResult(false, null, error.message)
+                }
+            )
+        }
+    }
+    
+    fun removeCoupon() {
+        _uiState.update { it.copy(appliedCoupon = null) }
+    }
+    
+    fun loadActiveCoupons() {
+        viewModelScope.launch {
+            repository.getActiveCoupons().fold(
+                onSuccess = { coupons ->
+                    _uiState.update { it.copy(availableCoupons = coupons) }
+                },
+                onFailure = { /* Silently fail */ }
+            )
+        }
+    }
+    
     // Order functions
-    fun placeOrder(shippingAddress: String, paymentMethod: String, notes: String?, onResult: (Boolean, String?) -> Unit) {
+    fun placeOrder(
+        shippingAddress: String, 
+        paymentMethod: String, 
+        notes: String?,
+        discountAmount: Double = 0.0,
+        couponCode: String? = null,
+        onResult: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             val user = currentUser.value
             if (user == null) {
@@ -239,10 +278,13 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                 shippingAddress = shippingAddress,
                 paymentMethod = paymentMethod,
                 notes = notes,
-                items = _cartItems.value
+                items = _cartItems.value,
+                discountAmount = discountAmount,
+                couponCode = couponCode
             ).fold(
                 onSuccess = { orderId ->
                     clearCart()
+                    removeCoupon()
                     _uiState.update { it.copy(isLoading = false) }
                     onResult(true, "Order #$orderId placed successfully!")
                 },
@@ -281,11 +323,14 @@ data class StoreUiState(
     val isLoadingProducts: Boolean = false,
     val isLoadingOrders: Boolean = false,
     val isSearching: Boolean = false,
+    val isValidatingCoupon: Boolean = false,
     val categories: List<Category> = emptyList(),
     val featuredProducts: List<Product> = emptyList(),
     val products: List<Product> = emptyList(),
     val categoryProducts: List<Product> = emptyList(),
     val searchResults: List<Product> = emptyList(),
     val orders: List<Order> = emptyList(),
+    val availableCoupons: List<Coupon> = emptyList(),
+    val appliedCoupon: Coupon? = null,
     val error: String? = null
 )

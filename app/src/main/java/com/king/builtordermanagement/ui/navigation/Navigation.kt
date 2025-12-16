@@ -204,14 +204,24 @@ fun StoreNavHost(
         }
         
         composable(Screen.Checkout.route) {
+            LaunchedEffect(Unit) {
+                viewModel.loadActiveCoupons()
+            }
             CheckoutScreen(
                 cartItems = cartItems,
                 cartTotal = cartTotal,
                 currentUser = currentUser,
                 isLoading = uiState.isLoading,
+                isValidatingCoupon = uiState.isValidatingCoupon,
+                appliedCoupon = uiState.appliedCoupon,
+                availableCoupons = uiState.availableCoupons,
                 onBackClick = { navController.popBackStack() },
-                onPlaceOrder = { address, payment, notes, callback ->
-                    viewModel.placeOrder(address, payment, notes) { success, message ->
+                onValidateCoupon = { code, amount, callback ->
+                    viewModel.validateCoupon(code, amount, callback)
+                },
+                onRemoveCoupon = { viewModel.removeCoupon() },
+                onPlaceOrder = { address, payment, notes, discountAmount, couponCode, callback ->
+                    viewModel.placeOrder(address, payment, notes, discountAmount, couponCode) { success, message ->
                         callback(success, message)
                         if (success) {
                             navController.navigate(Screen.Home.route) {
