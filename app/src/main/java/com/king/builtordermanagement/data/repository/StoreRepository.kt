@@ -122,13 +122,13 @@ class StoreRepository {
                 )
             }
             val request = OrderRequest(
-                userId = userId, 
-                totalAmount = totalAmount, 
+                userId = userId,
+                totalAmount = totalAmount,
                 discountAmount = discountAmount,
                 couponCode = couponCode,
-                shippingAddress = shippingAddress, 
-                paymentMethod = paymentMethod, 
-                notes = notes, 
+                shippingAddress = shippingAddress,
+                paymentMethod = paymentMethod,
+                notes = notes,
                 items = orderItems
             )
             val response = api.createOrder(request)
@@ -195,9 +195,9 @@ class StoreRepository {
         }
     }
     
-    suspend fun getActiveCoupons(): Result<List<Coupon>> = withContext(Dispatchers.IO) {
+    suspend fun getActiveCoupons(userId: Int? = null): Result<List<Coupon>> = withContext(Dispatchers.IO) {
         try {
-            val response = api.getActiveCoupons()
+            val response = api.getActiveCoupons(userId)
             if (response.success) {
                 Result.success(response.coupons ?: emptyList())
             } else {

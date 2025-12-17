@@ -143,7 +143,7 @@ private fun CartItemCard(
                     Spacer(modifier = Modifier.height(4.dp))
                     
                     Text(
-                        text = "$${item.product.discountPrice ?: item.product.price}",
+                        text = "₹${item.product.discountPrice ?: item.product.price}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryColor
@@ -263,7 +263,7 @@ private fun CartBottomBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "$${String.format("%.2f", total)}",
+                    text = "₹${String.format("%.2f", total)}",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryColor

@@ -192,21 +192,21 @@ fun ProductCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (product.discountPrice != null) {
                         Text(
-                            text = "$${product.discountPrice}",
+                            text = "₹${product.discountPrice}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryColor
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "$${product.price}",
+                            text = "₹${product.price}",
                             style = MaterialTheme.typography.bodySmall,
                             textDecoration = TextDecoration.LineThrough,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
                         Text(
-                            text = "$${product.price}",
+                            text = "₹${product.price}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryColor

@@ -78,6 +78,9 @@ function createOrder() {
                 $couponId = $couponResult->fetch_assoc()['id'];
                 $conn->query("INSERT INTO coupon_usage (coupon_id, user_id, order_id, discount_amount) VALUES ($couponId, $userId, $orderId, $discountAmount)");
                 $conn->query("UPDATE coupons SET used_count = used_count + 1 WHERE id = $couponId");
+                
+                // Mark user-specific coupon as used if applicable
+                $conn->query("UPDATE user_coupons SET is_used = 1, used_at = NOW() WHERE coupon_id = $couponId AND user_id = $userId");
             }
         }
         

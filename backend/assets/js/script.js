@@ -38,7 +38,8 @@ function switchPage(page) {
         orders: 'Orders Management',
         products: 'Products Management',
         categories: 'Categories Management',
-        users: 'Users Management'
+        users: 'Users Management',
+        coupons: 'Coupons Management'
     };
     document.getElementById('page-title').textContent = titles[page];
     
@@ -62,6 +63,10 @@ function loadPageData(page) {
             break;
         case 'users':
             loadUsers();
+            break;
+        case 'coupons':
+            loadCoupons();
+            loadCouponStats();
             break;
     }
 }
@@ -692,6 +697,300 @@ function closeModal(modalId) {
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
         window.location.href = 'login.html';
+    }
+}
+
+// Coupons Management
+let allCoupons = [];
+
+async function loadCouponStats() {
+    try {
+        const response = await fetch(`${API_BASE}/admin.php?action=coupon_stats`);
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('stat-total-coupons').textContent = data.stats.total_coupons;
+            document.getElementById('stat-active-coupons').textContent = data.stats.active_coupons;
+            document.getElementById('stat-coupon-usage').textContent = data.stats.total_usage;
+            document.getElementById('stat-total-discount').textContent = '$' + (data.stats.total_discount || 0).toFixed(2);
+        }
+    } catch (error) {
+        console.error('Error loading coupon stats:', error);
+    }
+}
+
+async function loadCoupons(search = '') {
+    try {
+        const response = await fetch(`${API_BASE}/admin.php?action=coupons`);
+        const data = await response.json();
+        
+        if (data.success) {
+            allCoupons = data.coupons;
+            let coupons = data.coupons;
+            
+            if (search) {
+                coupons = coupons.filter(c => 
+                    c.code.toLowerCase().includes(search.toLowerCase()) ||
+                    (c.description && c.description.toLowerCase().includes(search.toLowerCase()))
+                );
+            }
+            
+            const container = document.getElementById('coupons-list');
+            if (coupons.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>No coupons found</h3></div>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <button class="btn-secondary" onclick="showAssignCouponModal()">🎁 Assign Coupon to User</button>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Description</th>
+                            <th>Discount</th>
+                            <th>Min Order</th>
+                            <th>Usage</th>
+                            <th>Valid Until</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${coupons.map(coupon => {
+                            const isExpired = coupon.end_date && new Date(coupon.end_date) < new Date();
+                            const discountText = coupon.discount_type === 'percentage' 
+                                ? `${coupon.discount_value}%` 
+                                : `$${parseFloat(coupon.discount_value).toFixed(2)}`;
+                            const usageText = coupon.usage_limit 
+                                ? `${coupon.times_used || 0}/${coupon.usage_limit}` 
+                                : `${coupon.times_used || 0}/∞`;
+                            
+                            return `
+                            <tr>
+                                <td><strong>${coupon.code}</strong></td>
+                                <td style="max-width: 200px;">${coupon.description || '-'}</td>
+                                <td>
+                                    ${discountText}
+                                    ${coupon.max_discount ? `<br><small>(max $${coupon.max_discount})</small>` : ''}
+                                </td>
+                                <td>$${parseFloat(coupon.min_order_amount || 0).toFixed(2)}</td>
+                                <td>${usageText}</td>
+                                <td>${coupon.end_date ? new Date(coupon.end_date).toLocaleDateString() : 'No expiry'}</td>
+                                <td>
+                                    <span class="status-badge ${coupon.is_active == 1 && !isExpired ? 'status-delivered' : 'status-cancelled'}">
+                                        ${isExpired ? 'Expired' : (coupon.is_active == 1 ? 'Active' : 'Inactive')}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn-primary" onclick="editCoupon(${coupon.id})">Edit</button>
+                                    <button class="btn-warning" onclick="toggleCoupon(${coupon.id})">${coupon.is_active == 1 ? 'Disable' : 'Enable'}</button>
+                                    <button class="btn-danger" onclick="deleteCoupon(${coupon.id})">Delete</button>
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading coupons:', error);
+    }
+}
+
+function searchCoupons() {
+    const search = document.getElementById('coupon-search').value;
+    loadCoupons(search);
+}
+
+function showAddCouponModal() {
+    document.getElementById('coupon-modal-title').textContent = 'Add Coupon';
+    document.getElementById('coupon-form').reset();
+    document.getElementById('coupon-id').value = '';
+    document.getElementById('coupon-active').value = '1';
+    document.getElementById('coupon-discount-type').value = 'percentage';
+    document.getElementById('max-discount-group').style.display = 'block';
+    
+    // Set default dates
+    const now = new Date();
+    document.getElementById('coupon-start-date').value = now.toISOString().slice(0, 16);
+    
+    document.getElementById('coupon-modal').classList.add('active');
+}
+
+function toggleMaxDiscount() {
+    const type = document.getElementById('coupon-discount-type').value;
+    document.getElementById('max-discount-group').style.display = type === 'percentage' ? 'block' : 'none';
+}
+
+async function editCoupon(couponId) {
+    const coupon = allCoupons.find(c => c.id == couponId);
+    if (!coupon) return;
+    
+    document.getElementById('coupon-modal-title').textContent = 'Edit Coupon';
+    document.getElementById('coupon-id').value = coupon.id;
+    document.getElementById('coupon-code').value = coupon.code;
+    document.getElementById('coupon-description').value = coupon.description || '';
+    document.getElementById('coupon-discount-type').value = coupon.discount_type;
+    document.getElementById('coupon-discount-value').value = coupon.discount_value;
+    document.getElementById('coupon-min-order').value = coupon.min_order_amount || 0;
+    document.getElementById('coupon-max-discount').value = coupon.max_discount || '';
+    document.getElementById('coupon-usage-limit').value = coupon.usage_limit || '';
+    document.getElementById('coupon-active').value = coupon.is_active;
+    
+    if (coupon.start_date) {
+        document.getElementById('coupon-start-date').value = coupon.start_date.replace(' ', 'T').slice(0, 16);
+    }
+    if (coupon.end_date) {
+        document.getElementById('coupon-end-date').value = coupon.end_date.replace(' ', 'T').slice(0, 16);
+    }
+    
+    toggleMaxDiscount();
+    document.getElementById('coupon-modal').classList.add('active');
+}
+
+async function saveCoupon(event) {
+    event.preventDefault();
+    
+    const couponId = document.getElementById('coupon-id').value;
+    const couponData = {
+        code: document.getElementById('coupon-code').value,
+        description: document.getElementById('coupon-description').value,
+        discount_type: document.getElementById('coupon-discount-type').value,
+        discount_value: document.getElementById('coupon-discount-value').value,
+        min_order_amount: document.getElementById('coupon-min-order').value || 0,
+        max_discount: document.getElementById('coupon-max-discount').value || null,
+        usage_limit: document.getElementById('coupon-usage-limit').value || null,
+        start_date: document.getElementById('coupon-start-date').value.replace('T', ' ') + ':00',
+        end_date: document.getElementById('coupon-end-date').value ? document.getElementById('coupon-end-date').value.replace('T', ' ') + ':00' : null,
+        is_active: document.getElementById('coupon-active').value
+    };
+    
+    if (couponId) {
+        couponData.id = couponId;
+    }
+    
+    try {
+        const action = couponId ? 'update_coupon' : 'create_coupon';
+        const response = await fetch(`${API_BASE}/admin.php?action=${action}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(couponData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(couponId ? 'Coupon updated successfully' : 'Coupon created successfully');
+            closeModal('coupon-modal');
+            loadCoupons();
+            loadCouponStats();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error saving coupon:', error);
+        alert('Error saving coupon');
+    }
+}
+
+async function toggleCoupon(couponId) {
+    try {
+        const response = await fetch(`${API_BASE}/admin.php?action=toggle_coupon`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: couponId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            loadCoupons();
+            loadCouponStats();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error toggling coupon:', error);
+    }
+}
+
+async function deleteCoupon(couponId) {
+    if (!confirm('Are you sure you want to delete this coupon?')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/admin.php?action=delete_coupon`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: couponId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Coupon deleted successfully');
+            loadCoupons();
+            loadCouponStats();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error deleting coupon:', error);
+    }
+}
+
+async function showAssignCouponModal() {
+    // Load coupons for select
+    const couponSelect = document.getElementById('assign-coupon-select');
+    couponSelect.innerHTML = allCoupons
+        .filter(c => c.is_active == 1)
+        .map(c => `<option value="${c.id}">${c.code} - ${c.discount_type === 'percentage' ? c.discount_value + '%' : '$' + c.discount_value}</option>`)
+        .join('');
+    
+    // Load users for select
+    try {
+        const response = await fetch(`${API_BASE}/admin.php?action=users`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const userSelect = document.getElementById('assign-user-select');
+            userSelect.innerHTML = data.users
+                .map(u => `<option value="${u.id}">${u.name} (${u.email})</option>`)
+                .join('');
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+    
+    document.getElementById('assign-coupon-modal').classList.add('active');
+}
+
+async function assignCoupon(event) {
+    event.preventDefault();
+    
+    const couponId = document.getElementById('assign-coupon-select').value;
+    const userId = document.getElementById('assign-user-select').value;
+    
+    try {
+        const response = await fetch(`${API_BASE}/admin.php?action=assign_coupon`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ coupon_id: couponId, user_id: userId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Coupon assigned to user successfully');
+            closeModal('assign-coupon-modal');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error assigning coupon:', error);
+        alert('Error assigning coupon');
     }
 }
 

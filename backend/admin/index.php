@@ -35,6 +35,10 @@
                     <span class="icon">👥</span>
                     Users
                 </a>
+                <a href="#" class="nav-item" data-page="coupons">
+                    <span class="icon">🎟️</span>
+                    Coupons
+                </a>
             </nav>
         </aside>
 
@@ -113,6 +117,33 @@
                 <!-- Users Page -->
                 <div id="users-page" class="page">
                     <div id="users-list"></div>
+                </div>
+
+                <!-- Coupons Page -->
+                <div id="coupons-page" class="page">
+                    <div class="page-header">
+                        <button class="btn-primary" onclick="showAddCouponModal()">+ Add Coupon</button>
+                        <input type="text" id="coupon-search" placeholder="Search coupons..." onkeyup="searchCoupons()">
+                    </div>
+                    <div class="coupon-stats">
+                        <div class="stat-card small">
+                            <h4>Total Coupons</h4>
+                            <p id="stat-total-coupons">0</p>
+                        </div>
+                        <div class="stat-card small">
+                            <h4>Active</h4>
+                            <p id="stat-active-coupons">0</p>
+                        </div>
+                        <div class="stat-card small">
+                            <h4>Times Used</h4>
+                            <p id="stat-coupon-usage">0</p>
+                        </div>
+                        <div class="stat-card small">
+                            <h4>Total Discount Given</h4>
+                            <p id="stat-total-discount">$0</p>
+                        </div>
+                    </div>
+                    <div id="coupons-list"></div>
                 </div>
             </div>
         </main>
@@ -206,6 +237,97 @@
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="closeModal('category-modal')">Cancel</button>
                     <button type="submit" class="btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Coupon Modal -->
+    <div id="coupon-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('coupon-modal')">&times;</span>
+            <h2 id="coupon-modal-title">Add Coupon</h2>
+            <form id="coupon-form" onsubmit="saveCoupon(event)">
+                <input type="hidden" id="coupon-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Coupon Code</label>
+                        <input type="text" id="coupon-code" required style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="coupon-active">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="coupon-description" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Discount Type</label>
+                        <select id="coupon-discount-type" onchange="toggleMaxDiscount()">
+                            <option value="percentage">Percentage (%)</option>
+                            <option value="fixed">Fixed Amount ($)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Discount Value</label>
+                        <input type="number" id="coupon-discount-value" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Min Order Amount ($)</label>
+                        <input type="number" id="coupon-min-order" step="0.01" value="0">
+                    </div>
+                    <div class="form-group" id="max-discount-group">
+                        <label>Max Discount ($)</label>
+                        <input type="number" id="coupon-max-discount" step="0.01" placeholder="No limit">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Usage Limit</label>
+                        <input type="number" id="coupon-usage-limit" placeholder="Unlimited">
+                    </div>
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="datetime-local" id="coupon-start-date">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="datetime-local" id="coupon-end-date" placeholder="No expiry">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal('coupon-modal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Coupon</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assign Coupon Modal -->
+    <div id="assign-coupon-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('assign-coupon-modal')">&times;</span>
+            <h2>Assign Coupon to User</h2>
+            <form id="assign-coupon-form" onsubmit="assignCoupon(event)">
+                <div class="form-group">
+                    <label>Select Coupon</label>
+                    <select id="assign-coupon-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Select User</label>
+                    <select id="assign-user-select" required></select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal('assign-coupon-modal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Assign Coupon</button>
                 </div>
             </form>
         </div>

@@ -160,6 +160,29 @@ body {
     font-weight: bold;
 }
 
+/* Coupon Stats */
+.coupon-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card.small {
+    padding: 15px;
+}
+
+.stat-card.small h4 {
+    font-size: 12px;
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+
+.stat-card.small p {
+    font-size: 24px;
+    font-weight: bold;
+}
+
 /* Tables */
 .table {
     width: 100%;

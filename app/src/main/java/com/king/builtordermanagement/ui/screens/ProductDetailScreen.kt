@@ -222,21 +222,21 @@ fun ProductDetailScreen(
                     Row(verticalAlignment = Alignment.Bottom) {
                         if (product.discountPrice != null) {
                             Text(
-                                text = "$${product.discountPrice}",
+                                text = "₹${product.discountPrice}",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryColor
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = "$${product.price}",
+                                text = "₹${product.price}",
                                 style = MaterialTheme.typography.titleLarge,
                                 textDecoration = TextDecoration.LineThrough,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         } else {
                             Text(
-                                text = "$${product.price}",
+                                text = "₹${product.price}",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryColor

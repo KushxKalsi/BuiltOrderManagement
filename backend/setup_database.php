@@ -146,6 +146,25 @@ if ($conn->query($sql_coupon_usage) === TRUE) {
     $results["coupon_usage"] = "Error: " . $conn->error;
 }
 
+// Create user_coupons table for assigning coupons to specific users
+$sql_user_coupons = "CREATE TABLE IF NOT EXISTS user_coupons (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    coupon_id INT UNSIGNED NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    used_at TIMESTAMP NULL,
+    INDEX idx_user_id (user_id),
+    INDEX idx_coupon_id (coupon_id),
+    UNIQUE KEY unique_user_coupon (user_id, coupon_id)
+) ENGINE=InnoDB";
+
+if ($conn->query($sql_user_coupons) === TRUE) {
+    $results["user_coupons"] = "Created successfully";
+} else {
+    $results["user_coupons"] = "Error: " . $conn->error;
+}
+
 // Insert sample categories
 $sample_categories = [
     ["Electronics", "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400", "Latest electronic gadgets"],
@@ -181,7 +200,7 @@ foreach ($sample_products as $prod) {
 // Insert sample coupons
 $sample_coupons = [
     ["WELCOME10", "Welcome discount - 10% off on your first order", "percentage", 10.00, 0, 50.00, 100, "2024-01-01 00:00:00", "2025-12-31 23:59:59"],
-    ["FLAT20", "Flat $20 off on orders above $100", "fixed", 20.00, 100.00, null, 50, "2024-01-01 00:00:00", "2025-12-31 23:59:59"],
+    ["FLAT20", "Flat \$20 off on orders above \$100", "fixed", 20.00, 100.00, null, 50, "2024-01-01 00:00:00", "2025-12-31 23:59:59"],
     ["SAVE15", "Save 15% on all products", "percentage", 15.00, 50.00, 30.00, null, "2024-01-01 00:00:00", "2025-12-31 23:59:59"],
     ["SUMMER25", "Summer sale - 25% off", "percentage", 25.00, 75.00, 100.00, 200, "2024-06-01 00:00:00", "2025-08-31 23:59:59"]
 ];

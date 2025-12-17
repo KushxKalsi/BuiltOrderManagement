@@ -106,7 +106,7 @@ fun CheckoutScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                "$${String.format("%.2f", (item.product.discountPrice ?: item.product.price) * item.quantity)}",
+                                "₹${String.format("%.2f", (item.product.discountPrice ?: item.product.price) * item.quantity)}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -116,21 +116,21 @@ fun CheckoutScreen(
                     
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Subtotal", style = MaterialTheme.typography.bodyMedium)
-                        Text("$${String.format("%.2f", cartTotal)}", style = MaterialTheme.typography.bodyMedium)
+                        Text("₹${String.format("%.2f", cartTotal)}", style = MaterialTheme.typography.bodyMedium)
                     }
                     
                     if (appliedCoupon != null) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Discount (${appliedCoupon.code})", style = MaterialTheme.typography.bodyMedium, color = SuccessColor)
-                            Text("-$${String.format("%.2f", discountAmount)}", style = MaterialTheme.typography.bodyMedium, color = SuccessColor)
+                            Text("-₹${String.format("%.2f", discountAmount)}", style = MaterialTheme.typography.bodyMedium, color = SuccessColor)
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("$${String.format("%.2f", finalTotal)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                        Text("₹${String.format("%.2f", finalTotal)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PrimaryColor)
                     }
                 }
             }
@@ -166,7 +166,7 @@ fun CheckoutScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(appliedCoupon.code, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = SuccessColor)
-                                Text("You saved $${String.format("%.2f", discountAmount)}", style = MaterialTheme.typography.bodySmall, color = SuccessColor)
+                                Text("You saved ₹${String.format("%.2f", discountAmount)}", style = MaterialTheme.typography.bodySmall, color = SuccessColor)
                             }
                             IconButton(onClick = onRemoveCoupon) {
                                 Icon(Icons.Default.Close, contentDescription = "Remove coupon", tint = SuccessColor)
@@ -291,7 +291,7 @@ fun CheckoutScreen(
 
             // Place Order Button
             GradientButton(
-                text = "Place Order - $${String.format("%.2f", finalTotal)}",
+                text = "Place Order - ₹${String.format("%.2f", finalTotal)}",
                 onClick = {
                     onPlaceOrder(
                         shippingAddress,
@@ -369,7 +369,7 @@ private fun CouponCard(coupon: Coupon, onApply: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (coupon.minOrderAmount > 0) {
-                    Text("Min. order: $${String.format("%.0f", coupon.minOrderAmount)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Min. order: ₹${String.format("%.0f", coupon.minOrderAmount)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             OutlinedButton(onClick = onApply, shape = RoundedCornerShape(8.dp)) { Text("Apply") }

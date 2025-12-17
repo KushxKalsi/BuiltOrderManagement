@@ -55,6 +55,46 @@ switch ($action) {
     case 'users':
         getUsers();
         break;
+    // Coupon management
+    case 'coupons':
+        getCoupons();
+        break;
+    case 'create_coupon':
+        if ($method === 'POST') {
+            createCoupon();
+        }
+        break;
+    case 'update_coupon':
+        if ($method === 'POST') {
+            updateCoupon();
+        }
+        break;
+    case 'delete_coupon':
+        if ($method === 'POST') {
+            deleteCoupon();
+        }
+        break;
+    case 'toggle_coupon':
+        if ($method === 'POST') {
+            toggleCouponStatus();
+        }
+        break;
+    case 'assign_coupon':
+        if ($method === 'POST') {
+            assignCouponToUser();
+        }
+        break;
+    case 'user_coupons':
+        getUserCoupons();
+        break;
+    case 'remove_user_coupon':
+        if ($method === 'POST') {
+            removeUserCoupon();
+        }
+        break;
+    case 'coupon_stats':
+        getCouponStats();
+        break;
     default:
         echo json_encode(["success" => false, "message" => "Invalid action"]);
 }
@@ -318,6 +358,221 @@ function getUsers() {
     }
     
     echo json_encode(["success" => true, "users" => $users]);
+}
+
+// Coupon Management Functions
+function getCoupons() {
+    global $conn;
+    
+    $sql = "SELECT c.*, 
+            (SELECT COUNT(*) FROM coupon_usage WHERE coupon_id = c.id) as times_used
+            FROM coupons c 
+            ORDER BY c.created_at DESC";
+    
+    $result = $conn->query($sql);
+    $coupons = [];
+    
+    while ($row = $result->fetch_assoc()) {
+        $coupons[] = $row;
+    }
+    
+    echo json_encode(["success" => true, "coupons" => $coupons]);
+}
+
+function createCoupon() {
+    global $conn;
+    
+    $data = json_decode(file_get_contents("php://input"), true);
+    
+    $code = strtoupper($conn->real_escape_string(trim($data['code'])));
+    $description = $conn->real_escape_string($data['description'] ?? '');
+    $discountType = $conn->real_escape_string($data['discount_type']);
+    $discountValue = floatval($data['discount_value']);
+    $minOrderAmount = floatval($data['min_order_amount'] ?? 0);
+    $maxDiscount = isset($data['max_discount']) && $data['max_discount'] ? floatval($data['max_discount']) : null;
+    $usageLimit = isset($data['usage_limit']) && $data['usage_limit'] ? intval($data['usage_limit']) : null;
+    $startDate = $conn->real_escape_string($data['start_date'] ?? date('Y-m-d H:i:s'));
+    $endDate = isset($data['end_date']) && $data['end_date'] ? $conn->real_escape_string($data['end_date']) : null;
+    $isActive = isset($data['is_active']) ? intval($data['is_active']) : 1;
+    
+    $maxDiscountSql = $maxDiscount ? $maxDiscount : 'NULL';
+    $usageLimitSql = $usageLimit ? $usageLimit : 'NULL';
+    $endDateSql = $endDate ? "'$endDate'" : 'NULL';
+    
+    $sql = "INSERT INTO coupons (code, description, discount_type, discount_value, min_order_amount, max_discount, usage_limit, start_date, end_date, is_active) 
+            VALUES ('$code', '$description', '$discountType', $discountValue, $minOrderAmount, $maxDiscountSql, $usageLimitSql, '$startDate', $endDateSql, $isActive)";
+    
+    if ($conn->query($sql)) {
+        echo json_encode(["success" => true, "message" => "Coupon created successfully", "coupon_id" => $conn->insert_id]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to create coupon: " . $conn->error]);
+    }
+}
+
+function updateCoupon() {
+    global $conn;
+    
+    $data = json_decode(file_get_contents("php://input"), true);
+    
+    $id = intval($data['id']);
+    $code = strtoupper($conn->real_escape_string(trim($data['code'])));
+    $description = $conn->real_escape_string($data['description'] ?? '');
+    $discountType = $conn->real_escape_string($data['discount_type']);
+    $discountValue = floatval($data['discount_value']);
+    $minOrderAmount = floatval($data['min_order_amount'] ?? 0);
+    $maxDiscount = isset($data['max_discount']) && $data['max_discount'] ? floatval($data['max_discount']) : null;
+    $usageLimit = isset($data['usage_limit']) && $data['usage_limit'] ? intval($data['usage_limit']) : null;
+    $startDate = $conn->real_escape_string($data['start_date']);
+    $endDate = isset($data['end_date']) && $data['end_date'] ? $conn->real_escape_string($data['end_date']) : null;
+    $isActive = isset($data['is_active']) ? intval($data['is_active']) : 1;
+    
+    $maxDiscountSql = $maxDiscount ? $maxDiscount : 'NULL';
+    $usageLimitSql = $usageLimit ? $usageLimit : 'NULL';
+    $endDateSql = $endDate ? "'$endDate'" : 'NULL';
+    
+    $sql = "UPDATE coupons SET 
+            code = '$code',
+            description = '$description',
+            discount_type = '$discountType',
+            discount_value = $discountValue,
+            min_order_amount = $minOrderAmount,
+            max_discount = $maxDiscountSql,
+            usage_limit = $usageLimitSql,
+            start_date = '$startDate',
+            end_date = $endDateSql,
+            is_active = $isActive
+            WHERE id = $id";
+    
+    if ($conn->query($sql)) {
+        echo json_encode(["success" => true, "message" => "Coupon updated successfully"]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to update coupon: " . $conn->error]);
+    }
+}
+
+function deleteCoupon() {
+    global $conn;
+    
+    $data = json_decode(file_get_contents("php://input"), true);
+    $id = intval($data['id']);
+    
+    // Check if coupon has been used
+    $check = $conn->query("SELECT COUNT(*) as count FROM coupon_usage WHERE coupon_id = $id");
+    if ($check->fetch_assoc()['count'] > 0) {
+        echo json_encode(["success" => false, "message" => "Cannot delete coupon that has been used. Deactivate it instead."]);
+        return;
+    }
+    
+    $conn->query("DELETE FROM user_coupons WHERE coupon_id = $id");
+    
+    if ($conn->query("DELETE FROM coupons WHERE id = $id")) {
+        echo json_encode(["success" => true, "message" => "Coupon deleted successfully"]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to delete coupon"]);
+    }
+}
+
+function toggleCouponStatus() {
+    global $conn;
+    
+    $data = json_decode(file_get_contents("php://input"), true);
+    $id = intval($data['id']);
+    
+    $sql = "UPDATE coupons SET is_active = NOT is_active WHERE id = $id";
+    
+    if ($conn->query($sql)) {
+        echo json_encode(["success" => true, "message" => "Coupon status updated"]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to update coupon status"]);
+    }
+}
+
+function assignCouponToUser() {
+    global $conn;
+    
+    $data = json_decode(file_get_contents("php://input"), true);
+    $userId = intval($data['user_id']);
+    $couponId = intval($data['coupon_id']);
+    
+    // Check if already assigned
+    $check = $conn->query("SELECT id FROM user_coupons WHERE user_id = $userId AND coupon_id = $couponId");
+    if ($check->num_rows > 0) {
+        echo json_encode(["success" => false, "message" => "Coupon already assigned to this user"]);
+        return;
+    }
+    
+    $sql = "INSERT INTO user_coupons (user_id, coupon_id) VALUES ($userId, $couponId)";
+    
+    if ($conn->query($sql)) {
+        echo json_encode(["success" => true, "message" => "Coupon assigned to user successfully"]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to assign coupon: " . $conn->error]);
+    }
+}
+
+function getUserCoupons() {
+    global $conn;
+    
+    $userId = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
+    
+    if ($userId > 0) {
+        // Get coupons for specific user
+        $sql = "SELECT uc.*, c.code, c.description, c.discount_type, c.discount_value, c.min_order_amount, c.max_discount
+                FROM user_coupons uc
+                JOIN coupons c ON uc.coupon_id = c.id
+                WHERE uc.user_id = $userId
+                ORDER BY uc.assigned_at DESC";
+    } else {
+        // Get all user-coupon assignments
+        $sql = "SELECT uc.*, c.code, c.description, u.name as user_name, u.email as user_email
+                FROM user_coupons uc
+                JOIN coupons c ON uc.coupon_id = c.id
+                JOIN users u ON uc.user_id = u.id
+                ORDER BY uc.assigned_at DESC";
+    }
+    
+    $result = $conn->query($sql);
+    $userCoupons = [];
+    
+    while ($row = $result->fetch_assoc()) {
+        $userCoupons[] = $row;
+    }
+    
+    echo json_encode(["success" => true, "user_coupons" => $userCoupons]);
+}
+
+function removeUserCoupon() {
+    global $conn;
+    
+    $data = json_decode(file_get_contents("php://input"), true);
+    $id = intval($data['id']);
+    
+    if ($conn->query("DELETE FROM user_coupons WHERE id = $id")) {
+        echo json_encode(["success" => true, "message" => "Coupon removed from user"]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to remove coupon"]);
+    }
+}
+
+function getCouponStats() {
+    global $conn;
+    
+    $totalCoupons = $conn->query("SELECT COUNT(*) as count FROM coupons")->fetch_assoc()['count'];
+    $activeCoupons = $conn->query("SELECT COUNT(*) as count FROM coupons WHERE is_active = 1")->fetch_assoc()['count'];
+    $totalUsage = $conn->query("SELECT COUNT(*) as count FROM coupon_usage")->fetch_assoc()['count'];
+    $totalDiscount = $conn->query("SELECT SUM(discount_amount) as total FROM coupon_usage")->fetch_assoc()['total'];
+    $assignedCoupons = $conn->query("SELECT COUNT(*) as count FROM user_coupons WHERE is_used = 0")->fetch_assoc()['count'];
+    
+    echo json_encode([
+        "success" => true,
+        "stats" => [
+            "total_coupons" => intval($totalCoupons),
+            "active_coupons" => intval($activeCoupons),
+            "total_usage" => intval($totalUsage),
+            "total_discount" => floatval($totalDiscount ?? 0),
+            "assigned_coupons" => intval($assignedCoupons)
+        ]
+    ]);
 }
 
 $conn->close();

@@ -60,5 +60,5 @@ interface ApiService {
     suspend fun validateCoupon(@Body request: CouponValidateRequest): CouponResponse
     
     @GET("coupons.php?action=list")
-    suspend fun getActiveCoupons(): CouponResponse
+    suspend fun getActiveCoupons(@Query("user_id") userId: Int? = null): CouponResponse
 }

@@ -137,7 +137,7 @@ private fun OrderCard(
                 }
                 
                 Text(
-                    text = "$${String.format("%.2f", order.totalAmount)}",
+                    text = "₹${String.format("%.2f", order.totalAmount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryColor

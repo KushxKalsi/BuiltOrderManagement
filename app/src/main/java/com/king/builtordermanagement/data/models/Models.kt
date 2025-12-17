@@ -98,7 +98,7 @@ data class OrderRequest(
     @SerializedName("shipping_address") val shippingAddress: String,
     @SerializedName("payment_method") val paymentMethod: String = "COD",
     val notes: String? = null,
-    val items: List<OrderItemRequest>
+    val items: List<OrderItemRequest> = emptyList()
 )
 
 data class OrderItemRequest(

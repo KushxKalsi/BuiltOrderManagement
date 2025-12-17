@@ -41,6 +41,20 @@ function validateCoupon() {
     }
     
     $coupon = $result->fetch_assoc();
+    $isPersonalCoupon = false;
+    
+    // Check if this is a user-specific coupon
+    if ($userId > 0) {
+        $userCouponCheck = $conn->query("SELECT id, is_used FROM user_coupons WHERE coupon_id = " . $coupon['id'] . " AND user_id = $userId");
+        if ($userCouponCheck->num_rows > 0) {
+            $userCoupon = $userCouponCheck->fetch_assoc();
+            if ($userCoupon['is_used']) {
+                echo json_encode(["success" => false, "message" => "You have already used this personal coupon"]);
+                return;
+            }
+            $isPersonalCoupon = true;
+        }
+    }
     
     // Check if coupon is within valid date range
     $now = date('Y-m-d H:i:s');
@@ -53,8 +67,8 @@ function validateCoupon() {
         return;
     }
     
-    // Check usage limit
-    if ($coupon['usage_limit'] !== null && $coupon['used_count'] >= $coupon['usage_limit']) {
+    // Check usage limit (skip for personal coupons)
+    if (!$isPersonalCoupon && $coupon['usage_limit'] !== null && $coupon['used_count'] >= $coupon['usage_limit']) {
         echo json_encode(["success" => false, "message" => "Coupon usage limit reached"]);
         return;
     }
@@ -68,8 +82,8 @@ function validateCoupon() {
         return;
     }
     
-    // Check if user already used this coupon (if user_id provided)
-    if ($userId > 0) {
+    // Check if user already used this coupon in an order (if user_id provided and not personal)
+    if ($userId > 0 && !$isPersonalCoupon) {
         $usageCheck = $conn->query("SELECT id FROM coupon_usage WHERE coupon_id = " . $coupon['id'] . " AND user_id = $userId");
         if ($usageCheck->num_rows > 0) {
             echo json_encode(["success" => false, "message" => "You have already used this coupon"]);
@@ -115,20 +129,41 @@ function validateCoupon() {
 function getActiveCoupons() {
     global $conn;
     
+    $userId = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
     $now = date('Y-m-d H:i:s');
     
-    $sql = "SELECT id, code, description, discount_type, discount_value, min_order_amount, max_discount 
+    // Get general active coupons
+    $sql = "SELECT id, code, description, discount_type, discount_value, min_order_amount, max_discount, 0 as is_personal
             FROM coupons 
             WHERE is_active = 1 
             AND (start_date IS NULL OR start_date <= '$now')
             AND (end_date IS NULL OR end_date >= '$now')
-            AND (usage_limit IS NULL OR used_count < usage_limit)
-            ORDER BY discount_value DESC";
+            AND (usage_limit IS NULL OR used_count < usage_limit)";
+    
+    // If user is logged in, also get their assigned coupons
+    if ($userId > 0) {
+        $sql .= " UNION 
+            SELECT c.id, c.code, c.description, c.discount_type, c.discount_value, c.min_order_amount, c.max_discount, 1 as is_personal
+            FROM coupons c
+            JOIN user_coupons uc ON c.id = uc.coupon_id
+            WHERE uc.user_id = $userId 
+            AND uc.is_used = 0
+            AND c.is_active = 1
+            AND (c.start_date IS NULL OR c.start_date <= '$now')
+            AND (c.end_date IS NULL OR c.end_date >= '$now')";
+    }
+    
+    $sql .= " ORDER BY discount_value DESC";
     
     $result = $conn->query($sql);
     $coupons = [];
+    $seenCodes = [];
     
     while ($row = $result->fetch_assoc()) {
+        // Avoid duplicates
+        if (in_array($row['code'], $seenCodes)) continue;
+        $seenCodes[] = $row['code'];
+        
         $coupons[] = [
             "id" => intval($row['id']),
             "code" => $row['code'],
@@ -136,7 +171,8 @@ function getActiveCoupons() {
             "discount_type" => $row['discount_type'],
             "discount_value" => floatval($row['discount_value']),
             "min_order_amount" => floatval($row['min_order_amount']),
-            "max_discount" => $row['max_discount'] ? floatval($row['max_discount']) : null
+            "max_discount" => $row['max_discount'] ? floatval($row['max_discount']) : null,
+            "is_personal" => intval($row['is_personal']) == 1
         ];
     }
     

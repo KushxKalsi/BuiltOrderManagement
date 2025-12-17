@@ -246,7 +246,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     
     fun loadActiveCoupons() {
         viewModelScope.launch {
-            repository.getActiveCoupons().fold(
+            repository.getActiveCoupons(currentUser.value?.id).fold(
                 onSuccess = { coupons ->
                     _uiState.update { it.copy(availableCoupons = coupons) }
                 },
