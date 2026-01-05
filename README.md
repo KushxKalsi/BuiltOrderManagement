@@ -7,40 +7,40 @@ A complete full-stack order management solution with Android mobile app and web-
 ![PHP](https://img.shields.io/badge/Backend-PHP-purple)
 ![MySQL](https://img.shields.io/badge/Database-MySQL-orange)
 
-## 📱 Features
+## Features
 
 ### Mobile App (Android)
-- 🛍️ Product browsing with categories
-- 🔍 Search and filter products
-- 🛒 Shopping cart management
-- 💰 Discount pricing support
-- 📦 Order placement and tracking
-- 👤 User authentication (Login/Register)
-- ⭐ Featured products
-- 📊 Order history
-- 🎨 Modern Material Design 3 UI
-- 📱 Responsive design
+- Product browsing with categories
+- Search and filter products
+- Shopping cart management
+- Discount pricing support
+- Order placement and tracking
+- User authentication (Login/Register)
+- Featured products
+- Order history
+- Modern Material Design 3 UI
+- Responsive design
 
 ### Admin Web Panel
-- 📊 Real-time dashboard with statistics
-- 📦 Order management (view, update status, track)
-- 🛍️ Product management (CRUD operations)
-- 💰 Discount pricing management
-- 📁 Category management with images
-- 👥 User management
-- 🖼️ Live image previews
-- 🔍 Search and filter functionality
-- 📱 Responsive design (mobile, tablet, desktop)
+- Real-time dashboard with statistics
+- Order management (view, update status, track)
+- Product management (CRUD operations)
+- Discount pricing management
+- Category management with images
+- User management
+- Live image previews
+- Search and filter functionality
+- Responsive design (mobile, tablet, desktop)
 
 ### Backend API
-- 🔐 Secure authentication
-- 📡 RESTful API architecture
-- 🗄️ MySQL database
-- 🔒 Input sanitization & validation
-- 🌐 CORS enabled
-- ⚡ Optimized queries
+- Secure authentication
+- RESTful API architecture
+- MySQL database
+- Input sanitization & validation
+- CORS enabled
+- Optimized queries
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Mobile App
 - **Language:** Kotlin
@@ -75,7 +75,7 @@ A complete full-stack order management solution with Android mobile app and web-
 - Apache/Nginx web server
 - PHP extensions: mysqli, json
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 ### 1. Backend Setup
 
@@ -191,9 +191,9 @@ Username: admin
 Password: admin123
 ```
 
-⚠️ **Security Warning:** Change the default password before going to production!
+**Security Warning:** Change the default password before going to production!
 
-## 📱 Mobile App Usage
+## Mobile App Usage
 
 ### First Time Setup
 1. Launch the app
@@ -211,7 +211,7 @@ Password: admin123
 - **Orders:** Track order status and history
 - **Profile:** Manage account settings
 
-## 💻 Admin Panel Usage
+## Admin Panel Usage
 
 ### Dashboard
 - View total orders, pending orders, products, and revenue
@@ -348,7 +348,7 @@ BuiltOrderManagement/
 - `POST /api/admin.php?action=delete_category` - Delete category
 - `GET /api/admin.php?action=users` - Get all users
 
-## 🔒 Security
+## Security
 
 ### Before Going to Production
 
@@ -375,7 +375,7 @@ BuiltOrderManagement/
    - Move sensitive data to environment variables
    - Don't commit credentials to version control
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Mobile App Issues
 
@@ -446,19 +446,19 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is open source and available under the [GNU Affero General Public License v3.0](https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/LICENSE.md).
 
 ## 👨‍💻 Author
 
-Built with ❤️ by [Your Name]
+Built with ❤️ by Kush Kalsi
 
-## 📞 Support
+## Support
 
 For issues and questions:
 - Open an issue on GitHub
-- Email: your.email@example.com
+- Email: me@kushkalsi.in
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Material Design 3 for UI components
 - Unsplash for sample product images
@@ -472,11 +472,13 @@ For issues and questions:
 ## 📸 Screenshots
 
 ### Mobile App
-[Add screenshots of your mobile app here]
+<img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-112925.png" width="49%" height="300px"/>
+
+<img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-113013.png" width="49%" height="300px"/>
+
+<img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-113025.png" width="49%" height="300px"/>
 
 ### Admin Panel
-[Add screenshots of your admin panel here]
-
----
+<img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/image.png" width="49%" height="300px"/>
 
 **Happy Coding! 🚀**
