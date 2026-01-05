@@ -472,11 +472,7 @@ For issues and questions:
 ## 📸 Screenshots
 
 ### Mobile App
-<img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-112925.png" width="49%" height="300px"/>
-
-<img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-113013.png" width="49%" height="300px"/>
-
-<img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-113025.png" width="49%" height="300px"/>
+<img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-112925.png" width="100%" height="300px"/> <img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-113013.png" width="100%" height="300px"/> <img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Screenshot_20251212-113025.png" width="100%" height="300px"/>
 
 ### Admin Panel
 <img src="https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/image.png" width="49%" height="300px"/>
