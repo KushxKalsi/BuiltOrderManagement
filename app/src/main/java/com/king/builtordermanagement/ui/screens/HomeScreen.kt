@@ -94,16 +94,16 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             // Banner Section
-            item {
+            item(key = "banner") {
                 PromoBanner(onShopNowClick = { onSeeAllClick("featured") })
             }
             
             // Categories Section
-            item {
+            item(key = "categories_header") {
                 SectionHeader(title = "Categories", onSeeAllClick = onSeeAllCategories)
             }
             
-            item {
+            item(key = "categories_row") {
                 if (uiState.isLoadingCategories) {
                     Box(
                         modifier = Modifier
@@ -126,11 +126,11 @@ fun HomeScreen(
             }
             
             // Featured Products Section
-            item {
+            item(key = "featured_header") {
                 SectionHeader(title = "Featured Products ✨", onSeeAllClick = { onSeeAllClick("featured") })
             }
             
-            item {
+            item(key = "featured_row") {
                 if (uiState.isLoadingFeatured) {
                     Box(
                         modifier = Modifier
@@ -150,12 +150,12 @@ fun HomeScreen(
             }
             
             // All Products Section
-            item {
+            item(key = "all_products_header") {
                 SectionHeader(title = "All Products", onSeeAllClick = { onSeeAllClick("all") })
             }
             
-            item {
-                if (uiState.isLoadingProducts) {
+            if (uiState.isLoadingProducts) {
+                item(key = "products_loading") {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -164,12 +164,34 @@ fun HomeScreen(
                     ) {
                         CircularProgressIndicator()
                     }
-                } else {
-                    ProductsGrid(
-                        products = if (selectedCategoryId != null) uiState.categoryProducts else uiState.products,
-                        onProductClick = onProductClick,
-                        onAddToCart = onAddToCart
-                    )
+                }
+            } else {
+                val products = if (selectedCategoryId != null) uiState.categoryProducts else uiState.products
+                val productRows = products.chunked(2)
+                
+                items(
+                    count = productRows.size,
+                    key = { index -> "product_row_$index" }
+                ) { rowIndex ->
+                    val rowProducts = productRows[rowIndex]
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        rowProducts.forEach { product ->
+                            ProductCard(
+                                product = product,
+                                onClick = { onProductClick(product) },
+                                onAddToCart = { onAddToCart(product) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (rowProducts.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         }
@@ -284,7 +306,10 @@ private fun CategoriesRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(categories) { category ->
+        items(
+            items = categories,
+            key = { it.id }
+        ) { category ->
             CategoryChip(
                 name = category.name,
                 imageUrl = category.imageUrl,
@@ -305,42 +330,16 @@ private fun FeaturedProductsRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(products) { product ->
+        items(
+            items = products,
+            key = { it.id }
+        ) { product ->
             ProductCard(
                 product = product,
                 onClick = { onProductClick(product) },
                 onAddToCart = { onAddToCart(product) },
                 modifier = Modifier.width(180.dp)
             )
-        }
-    }
-}
-
-@Composable
-private fun ProductsGrid(
-    products: List<Product>,
-    onProductClick: (Product) -> Unit,
-    onAddToCart: (Product) -> Unit
-) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        products.chunked(2).forEach { rowProducts ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                rowProducts.forEach { product ->
-                    ProductCard(
-                        product = product,
-                        onClick = { onProductClick(product) },
-                        onAddToCart = { onAddToCart(product) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                if (rowProducts.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
