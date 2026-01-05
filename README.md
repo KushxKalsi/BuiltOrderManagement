@@ -7,6 +7,8 @@ A complete full-stack order management solution with Android mobile app and web-
 ![PHP](https://img.shields.io/badge/Backend-PHP-purple)
 ![MySQL](https://img.shields.io/badge/Database-MySQL-orange)
 
+![banner](https://github.com/KushxKalsi/BuiltOrderManagement/blob/main_branch/apk/screenshots/Banner.png)
+
 ## Features
 
 ### Mobile App (Android)
