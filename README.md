@@ -62,7 +62,7 @@ A complete full-stack order management solution with Android mobile app and web-
 - **Design:** Responsive, Modern UI
 - **API Integration:** Fetch API
 
-## 📋 Prerequisites
+## Prerequisites
 
 ### For Mobile App
 - Android Studio (latest version)
@@ -253,7 +253,7 @@ Password: admin123
 - See order count per user
 - Track registration dates
 
-## 🔧 Configuration
+## Configuration
 
 ### Server Requirements
 - PHP 7.4+
@@ -274,7 +274,7 @@ Ensure your server allows:
 - POST, GET, PUT, DELETE methods
 - JSON content type
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 BuiltOrderManagement/
@@ -314,7 +314,7 @@ BuiltOrderManagement/
     └── README.md                    # Backend documentation
 ```
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/auth.php?action=register` - Register new user
@@ -423,7 +423,7 @@ BuiltOrderManagement/
 - Check internet connection
 - Ensure URLs use HTTPS if site uses HTTPS
 
-## 📊 Database Schema
+## Database Schema
 
 ### users
 - id, name, email, phone, password_hash, address, created_at
